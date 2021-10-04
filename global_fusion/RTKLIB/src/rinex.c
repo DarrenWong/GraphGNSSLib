@@ -788,7 +788,24 @@ static void saveslips(unsigned char slips[][NFREQ], obsd_t *data)
 {
     int i;
     for (i=0;i<NFREQ;i++) {
-        if (data->LLI[i]&1) slips[data->sat-1][i]|=1;
+        if (data->LLI[i]&1) {
+            slips[data->sat-1][i]|=1;
+           printf("time %d",data->time.time);
+            printf("LLI %d ",(int)data->LLI[i]);
+            printf("SNR %.6f ",(int)data->SNR);
+            printf("sat %d\n",(int)data->sat);  
+
+            printf("P %d\n",data->P[i]);  
+            printf("L %d\n",data->L[i]);  
+            printf("D %d\n",data->D[i]);  
+
+        //     while(1){
+        //       printf("time %c",data->sat);  
+        //      usleep(100000);
+
+        //    }
+        }
+
     }
 }
 /* restore slips -------------------------------------------------------------*/
@@ -977,10 +994,12 @@ static int readrnxobs(FILE *fp, gtime_t ts, gtime_t te, double tint,
             
             /* utc -> gpst */
             if (tsys==TSYS_UTC) data[i].time=utc2gpst(data[i].time);
-            
+            printf("read cycle slip>>>>>>>>>>>>>>>>>>>>>%d %u\n",data[i].time, data[i].SNR);
             /* save cycle-slip */
             saveslips(slips,data+i);
+
         }
+        //usleep(1000*1000*10);
         /* screen data by time */
         if (n>0&&!screent(data[0].time,ts,te,tint)) continue;
         

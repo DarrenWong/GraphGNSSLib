@@ -1032,8 +1032,12 @@ static int execses(gtime_t ts, gtime_t te, double ti, const prcopt_t *popt,
         return 0;
     }
     iobsu=iobsr=isbs=ilex=revs=aborts=0;
-            
+    ROS_INFO("hf test, mode=%d",popt_.mode);
+    ROS_INFO(" solty%d",popt_.soltype);
+          
     if (popt_.mode==PMODE_SINGLE||popt_.soltype==0) {
+        ROS_INFO("hf test2");
+
         if ((fp=openfile(outfile))) {
             // LOG(INFO)<<"--------------start procpos--------------";wait(2);
             ROS_INFO("\033[1;32m----> start procpos.\033[0m");wait(2);
@@ -1054,15 +1058,23 @@ static int execses(gtime_t ts, gtime_t te, double ti, const prcopt_t *popt,
         solb=(sol_t *)malloc(sizeof(sol_t)*nepoch);
         rbf=(double *)malloc(sizeof(double)*nepoch*3);
         rbb=(double *)malloc(sizeof(double)*nepoch*3);
-        
+       ROS_INFO(" combined" );
+     
         if (solf&&solb) {
             isolf=isolb=0;
+            ROS_INFO(" forward" );
+
             procpos(NULL,&popt_,sopt,1); /* forward */
+            
             revs=1; iobsu=iobsr=obss.n-1; isbs=sbss.n-1; ilex=lexs.n-1;
+            ROS_INFO(" backward" );
+
             procpos(NULL,&popt_,sopt,1); /* backward */
             
             /* combine forward/backward solutions */
             if (!aborts&&(fp=openfile(outfile))) {
+                ROS_INFO(" combined results" );
+
                 combres(fp,&popt_,sopt);
                 fclose(fp);
             }

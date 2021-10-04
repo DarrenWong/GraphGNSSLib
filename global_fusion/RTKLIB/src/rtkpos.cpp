@@ -623,11 +623,10 @@ static void detslp_ll(rtk_t *rtk, const obsd_t *obs, int i, int rcv)
     int f,sat=obs[i].sat;
     
     trace(3,"detslp_ll: i=%d rcv=%d\n",i,rcv);
-    
+
     for (f=0;f<rtk->opt.nf;f++) {
-        
+
         if (obs[i].L[f]==0.0) continue;
-        
         /* restore previous LLI */
         LLI1=(rtk->ssat[sat-1].slip[f]>>6)&3;
         LLI2=(rtk->ssat[sat-1].slip[f]>>4)&3;
@@ -635,7 +634,7 @@ static void detslp_ll(rtk_t *rtk, const obsd_t *obs, int i, int rcv)
         
         /* detect slip by cycle slip flag */
         slip=(rtk->ssat[sat-1].slip[f]|obs[i].LLI[f])&3;
-        
+          
         if (obs[i].LLI[f]&1) {
             errmsg(rtk,"slip detected (sat=%2d rcv=%d LLI%d=%x)\n",
                    sat,rcv,f+1,obs[i].LLI[f]);
@@ -647,7 +646,9 @@ static void detslp_ll(rtk_t *rtk, const obsd_t *obs, int i, int rcv)
             slip|=1;
         }
         /* save current LLI and slip flag */
-        if (rcv==1) rtk->ssat[sat-1].slip[f]=(obs[i].LLI[f]<<6)|(LLI2<<4)|slip;
+        if (rcv==1) 
+        {rtk->ssat[sat-1].slip[f]=(obs[i].LLI[f]<<6)|(LLI2<<4)|slip;
+        }
         else        rtk->ssat[sat-1].slip[f]=(obs[i].LLI[f]<<4)|(LLI1<<6)|slip;
     }
 }
@@ -817,8 +818,11 @@ static void udbias(rtk_t *rtk, double tt, const obsd_t *obs, const int *sat,
         /* correct phase-bias offset to enssure phase-code coherency */
         if (j>0) {
             for (i=1;i<=MAXSAT;i++) {
-                if (rtk->x[IB(i,f,&rtk->opt)]!=0.0) rtk->x[IB(i,f,&rtk->opt)]+=offset/j;
-                // LOG(INFO)<<"correct phase-bias offset bias[i]-> "<<rtk->x[IB(i,f,&rtk->opt)];
+                if (rtk->x[IB(i,f,&rtk->opt)]!=0.0) {
+                 rtk->x[IB(i,f,&rtk->opt)]+=offset/j;   
+                 LOG(INFO)<<"correct phase-bias offset bias-> "<<i<<" "<<rtk->x[IB(i,f,&rtk->opt)];
+
+                }
             }
         }
         /* set initial states of phase-bias 
@@ -961,7 +965,8 @@ static int zdres(int base, const obsd_t *obs, int n, const double *rs,
     trace(4,"y=\n"); tracemat(4,y,nf*2,n,13,3);
     
     return 1;
-}
+}           
+
 /* test valid observation data -----------------------------------------------*/
 static int validobs(int i, int j, int f, int nf, double *y)
 {
@@ -1080,9 +1085,10 @@ static int test_sys(int sys, int m)
 }
 /* double-differenced phase/code residuals -----------------------------------*/
 static int ddres(rtk_t *rtk, const nav_t *nav, double dt, const double *x,
+
                  const double *P, const int *sat, double *y, double *e,
                  double *azel, const int *iu, const int *ir, int ns, double *v,
-                 double *H, double *R, int *vflg)
+                 double *H, double *R, int *vflg, const obsd_t *obs)
 {
     prcopt_t *opt=&rtk->opt;
     double bl,dr[3],posu[3],posr[3],didxi=0.0,didxj=0.0,*im;
@@ -1113,16 +1119,18 @@ static int ddres(rtk_t *rtk, const nav_t *nav, double dt, const double *x,
     for (m=0;m<5;m++) /* m=0:gps/sbs,1:glo,2:gal,3:bds,4:qzs */
     
     for (f=opt->mode>PMODE_DGPS?0:nf;f<nf*2;f++) {
-        
         /* search reference satellite with highest elevation */
         for (i=-1,j=0;j<ns;j++) {
             sysi=rtk->ssat[sat[j]-1].sys;
             if (!test_sys(sysi,m)) continue;
-            if (!validobs(iu[j],ir[j],f,nf,y)) continue;
+            if (!validobs(iu[j],ir[j],f,nf,y)) {
+                continue;
+                }
             if (i<0||azel[1+iu[j]*2]>=azel[1+iu[i]*2]) i=j;
         }
+
         if (i<0) continue;
-        
+        LOG(INFO) <<"highest elevation: i:"<<i<<" "<<iu[i]<<" "<<ir[i]<<" f="<<f<<" "<<ns<<" raw index:"<<(float)obs[ir[i]].sat<<std::endl;
         /* make double difference */
         for (j=0;j<ns;j++) {
             if (i==j) continue;
@@ -1140,7 +1148,7 @@ static int ddres(rtk_t *rtk, const nav_t *nav, double dt, const double *x,
             /* double-differenced residual */
             v[nv]=(y[f+iu[i]*nf*2]-y[f+ir[i]*nf*2])-
                   (y[f+iu[j]*nf*2]-y[f+ir[j]*nf*2]);
-            
+            std::cout<<"double difference residual:"<<v[nv]<<std::endl;
             /* partial derivatives by rover position */
             if (H) {
                 // LOG(INFO) <<"partial derivatives by rover position";
@@ -1759,6 +1767,9 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
     // LOG(INFO) <<"niter-> " <<niter;
     
     for (i=0;i<niter;i++) {
+
+        LOG(INFO) <<"niter:"<<i<<std::endl;
+
         /* undifferenced residuals for rover */
         if (!zdres(0,obs,nu,rs,dts,svh,nav,xp,opt,0,y,e,azel)) {
             errmsg(rtk,"rover initial position error\n");
@@ -1766,7 +1777,7 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
             break;
         }
         /* double-differenced residuals and partial derivatives */
-        if ((nv=ddres(rtk,nav,dt,xp,Pp,sat,y,e,azel,iu,ir,ns,v,H,R,vflg))<1) {
+        if ((nv=ddres(rtk,nav,dt,xp,Pp,sat,y,e,azel,iu,ir,ns,v,H,R,vflg, obs))<1) {
             errmsg(rtk,"no double-differenced residual\n");
             stat=SOLQ_NONE;
             break;
@@ -1783,7 +1794,13 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
     if (stat!=SOLQ_NONE&&zdres(0,obs,nu,rs,dts,svh,nav,xp,opt,0,y,e,azel)) {
         
         /* post-fit residuals for float solution */
-        nv=ddres(rtk,nav,dt,xp,Pp,sat,y,e,azel,iu,ir,ns,v,NULL,R,vflg);
+        LOG(INFO) <<"ddres2:"<<i<<std::endl;
+        for(int is=0; is<ns; is++) {  
+          LOG(INFO)<<"ir index"<<ir[is]<<" raw index"<<float(obs[ir[is]].sat)<<std::endl;
+          LOG(INFO)<<"iu index"<<iu[is]<<" raw index"<<float(obs[iu[is]].sat)<<std::endl;
+         
+        } 
+        nv=ddres(rtk,nav,dt,xp,Pp,sat,y,e,azel,iu,ir,ns,v,NULL,R,vflg, obs);
         
         /* validation of float solution */
         if (valpos(rtk,v,R,vflg,nv,4.0)) {
@@ -1853,7 +1870,7 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
         if (zdres(0,obs,nu,rs,dts,svh,nav,xa,opt,0,y,e,azel)) {
             
             /* post-fit reisiduals for fixed solution */
-            nv=ddres(rtk,nav,dt,xa,NULL,sat,y,e,azel,iu,ir,ns,v,NULL,R,vflg);
+            nv=ddres(rtk,nav,dt,xa,NULL,sat,y,e,azel,iu,ir,ns,v,NULL,R,vflg,obs);
             
             /* validation of fixed solution */
             if (valpos(rtk,v,R,vflg,nv,4.0)) {

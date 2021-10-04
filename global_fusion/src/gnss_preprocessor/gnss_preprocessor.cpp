@@ -35,6 +35,8 @@ int main(int argc, char **argv)
 	nh.param("mode",   mode, 2);
 	nh.param("nf",     nf, 2);
 	nh.param("soltype",soltype, 2);
+    ROS_INFO(" hf soltype%d",soltype);
+
 	ros::param::get("roverMeasureFile", roverMeasureFile);
 	ros::param::get("baseMeasureFile", baseMeasureFile);
 	ros::param::get("BeiDouEmpFile", BeiDouEmpFile);
@@ -65,6 +67,7 @@ int main(int argc, char **argv)
 	prcopt.navsys = SYS_ALL;              // use all satellites system
 	prcopt.nf = nf;						// frequency (1:L1,2:L1+L2,3:L1+L2+L5) 
 	prcopt.soltype = soltype;					// 0:forward,1:backward,2:combined
+
 	prcopt.elmin = 15.0*D2R;				// elevation mask (rad)	
 	prcopt.tidecorr = 0;					// earth tide correction (0:off,1-:on) 
 	prcopt.posopt[4] = 0;               // use RAIM FDE (qmo)  1
